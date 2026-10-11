@@ -1,0 +1,72 @@
+services:
+  bitcoind:
+    image: bitcoin/bitcoin:latest
+    container_name: btc-pool-bitcoind
+    restart: unless-stopped
+    command:
+      - -printtoconsole=1
+      - -server=1
+      - -rpcbind=0.0.0.0
+      - -rpcallowip=172.16.0.0/12
+      - -rpcallowip=10.0.0.0/8
+      - -rpcallowip=192.168.0.0/16
+      - -zmqpubrawblock=tcp://0.0.0.0:28332
+      - -zmqpubrawtx=tcp://0.0.0.0:28333
+    environment:
+      BITCOIN_RPCUSER: ${BITCOIN_RPC_USER}
+      BITCOIN_RPCPASSWORD: ${BITCOIN_RPC_PASSWORD}
+    ports:
+      - "8332:8332"
+      - "8333:8333"
+      - "28332:28332"
+      - "28333:28333"
+    volumes:
+      - bitcoin-data:/root/.bitcoin
+    networks:
+      - pool-network
+
+  pool:
+    build:
+      context: .
+      dockerfile: docker/pool/Dockerfile
+    container_name: btc-pool-service
+    restart: unless-stopped
+    depends_on:
+      - bitcoind
+      - postgres
+    environment:
+      BITCOIN_RPC_URL: http://bitcoind:8332
+      BITCOIN_RPC_USER: ${BITCOIN_RPC_USER}
+      BITCOIN_RPC_PASSWORD: ${BITCOIN_RPC_PASSWORD}
+      STRATUM_PORT: ${STRATUM_PORT}
+      POOL_NAME: ${POOL_NAME}
+      POOL_FEE_PERCENT: ${POOL_FEE_PERCENT}
+      MIN_PAYOUT_SATS: ${MIN_PAYOUT_SATS}
+      PAYOUT_ADDRESS: ${PAYOUT_ADDRESS}
+      DATABASE_URL: ${DATABASE_URL}
+    ports:
+      - "${STRATUM_PORT}:${STRATUM_PORT}"
+      - "8080:8080"
+    networks:
+      - pool-network
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: btc-pool-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: pool
+      POSTGRES_PASSWORD: changeme-strong-password
+      POSTGRES_DB: btc_pool
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    networks:
+      - pool-network
+
+volumes:
+  bitcoin-data:
+  postgres-data:
+
+networks:
+  pool-network:
+    driver: bridge
