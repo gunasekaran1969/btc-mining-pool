@@ -1,0 +1,22 @@
+# Bitcoin Core configuration example
+# Copy to bitcoin.conf and never commit the real file.
+
+server=1
+daemon=0
+printtoconsole=1
+
+# RPC
+rpcuser=changeme
+rpcpassword=changeme-strong-password
+rpcbind=0.0.0.0
+rpcallowip=172.16.0.0/12
+rpcallowip=10.0.0.0/8
+rpcallowip=192.168.0.0/16
+
+# Network
+listen=1
+txindex=1
+
+# ZMQ notifications for pool software
+zmqpubrawblock=tcp://0.0.0.0:28332
+zmqpubrawtx=tcp://0.0.0.0:28333
